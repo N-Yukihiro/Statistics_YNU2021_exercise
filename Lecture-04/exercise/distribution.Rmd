@@ -216,3 +216,19 @@ ggplot(data = NULL) +
 qnorm(p = 0.025, mean = 0, sd = 1)
 ```
 
+### 確率密度関数と確率点
+
+正規分布の確率密度関数のグラフに確率点を求めて線を引く.
+まずdnorm()関数で標準正規分布のグラフを描き, その上にgeom_vline()関数で縦線を引く.
+引数のxinterceptで確率点を求めるqnorm()関数を利用する.
+
+```{r}
+ggplot(data = NULL) +
+  aes(xmin = -3, xmax = 3) +
+  stat_function(
+    fun = dnorm) +
+  geom_vline(
+    xintercept = qnorm(p = 0.025),
+    colour = "red")
+```
+
