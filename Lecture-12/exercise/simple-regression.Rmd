@@ -63,10 +63,10 @@ t val.にt値が示され, pにp値が示される.
 
 ### 回帰係数の95%信頼区間を表示
 
-回帰係数の95%信頼区間を表示するには, summ(coefint = TRUE)を指定する.
+回帰係数の95%信頼区間を表示するには, summ(confint = TRUE)を指定する.
 
 ```{r}
-summ(ols1, coefint = TRUE)
+summ(ols1, confint = TRUE)
 ```
 
 ### 標準回帰係数の算出
@@ -87,4 +87,22 @@ ggplot(data = dat) +
   aes(x = disp, y = mpg) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
+```
+### 結果を論文に掲載する
+
+結果を論文に掲載できるようにきれいに整形するにはstargazerパッケージを利用するのが便利
+様々な引数があるので, 使いこなすにはHELPを参照
+star.cutoffs = NA, omit.table.layout = "n"は忘れない
+分析がしたいのであって, 天体観測がしたいわけではないことに注意
+
+```{r}
+install.packages("stargazer")
+library(stargazer)
+stargazer::stargazer(ols1,
+                     type = "text",
+                     style = "all", 
+                     ci = TRUE,
+                     star.cutoffs = NA, 
+                     omit.table.layout = 'n',
+                     align = TRUE)
 ```
