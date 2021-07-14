@@ -1,0 +1,307 @@
+---
+title: "重回帰分析(最小二乗法)"
+output: html_notebook
+---
+
+### 利用するデータ
+
+本日利用するデータはmtcarsデータ
+燃費(mpg)を応答変数に排気量(disp)やレースタイム(qsec)を説明変数とする
+
+```{r}
+library(dplyr)
+dat <- select(mtcars,
+              mpg, disp, qsec)
+str(dat)
+```
+
+###
+
+利用する3変数でペアプロットをする
+
+```{r}
+library(ggplot2)
+library(GGally)
+ggpairs(dat)
+```
+
+### 単回帰分析
+
+- 比較のためにまず前回行った単回帰分析を行う
+    
+```{r}
+ols1 <- lm(mpg ~ disp, data = dat)
+```
+
+### 重回帰分析
+
+重回帰分析を行うには, 分析モデルで説明変数を`+`でつなぐ
+
+```{r}
+ols2 <- lm(mpg ~ disp + qsec, data = dat)
+```
+
+データフレーム内にある応答変数以外のすべての変数を説明変数とする際には, ` ~ .`と書くこともできる
+
+```{r}
+ols3 <- lm(mpg ~ ., data = dat)
+```
+
+### 重回帰分析の結果の表示
+
+```{r}
+library(jtools)
+summ(ols2)
+```
+
+### 結果を論文に掲載する
+
+結果を論文に掲載できるようにきれいに整形するにはstargazerパッケージを利用するのが便利
+様々な引数があるので, 使いこなすにはHELPを参照
+star.cutoffs = NA, omit.table.layout = "n"は忘れない
+    分析がしたいのであって, 天体観測がしたいわけではないことに注意
+
+```{r}
+install.packages("stargazer")
+library(stargazer)
+stargazer::stargazer(ols2,
+                     type = "text",
+                     style = "all", 
+                     ci = TRUE,
+                     star.cutoffs = NA, 
+                     omit.table.layout = 'n',
+                     align = TRUE)
+```
+
+### 複数の分析結果を並べる
+
+複数の分析結果を並べるのにもstargazer`は有用
+
+```{r}
+stargazer(ols1, ols2,
+          type = "text",
+          style = "all", 
+          ci = TRUE,
+          star.cutoffs = NA, 
+          omit.table.layout = 'n',
+          align = TRUE)
+```
+
+### 結果の図示
+
+回帰分析の結果は表だけでなく, グラフ化するとわかりやすい
+結果のグラフ化にはcoefplotパッケージのcoefplot()関数が便利
+
+```{r}
+install.packages("coefplot")
+library(coefplot)
+coefplot(ols2)
+```
+
+### 結果の図示2
+
+定数項は基準が違うために一緒にプロットすると見づらい場合がある
+intercept = FALSEを引数に入れれば定数項を表示しない
+
+```{r}
+coefplot(ols2,
+         intercept = FALSE)
+```
+
+### 複数のモデルを比較
+
+複数のモデルをグラフを用いて比較するには, coefplotパッケージのmultiplot()関数が便利
+
+```{r}
+multiplot(ols1, ols2,
+          intercept = FALSE)
+```
+
+### 標準回帰係数のプロット
+
+標準回帰係数へはarmパッケージのstandardize(standardize.y = TRUE)で変換できる
+
+```{r}
+install.packages("arm")
+coefplot(
+  arm::standardize(ols2,
+                   standardize.y = TRUE))
+```
+
+### 標準回帰係数のマルチプロット
+
+標準回帰係数へはarmパッケージのstandardize(standardize.y = TRUE)で変換すれば, マルチプロットもできる
+
+```{r}
+multiplot(
+  arm::standardize(ols1,
+                   standardize.y = TRUE),
+  arm::standardize(ols2,
+                   standardize.y = TRUE),
+  names = c("model1", "model2"))
+```
+
+### 残差と予測値のプロット
+
+残差プロットをするためには, `ggfortify`パッケージと`autoplot()`関数を利用するのが便利
+x軸が予測値, y軸が残差
+
+```{r}
+install.packages("ggfortify")
+library(ggfortify)
+autoplot(ols2, 
+         which = 1, 
+         ncol = 1)
+```
+
+### 残差の平方根プロット
+
+残差の変動を確認するため, x軸が予測値, y軸が標準化した残差の絶対値の平和根の散布図を描く
+
+```{r}
+autoplot(ols2, 
+         which = 3, 
+         ncol = 1)
+```
+
+### 残差の正規Q-Qプロット
+
+残差の正規Q-Qプロットで直線状に標準化した残差が乗っているかチェックする
+
+```{r}
+autoplot(ols2, 
+         which = 2,
+         ncol = 1)
+```
+
+### 標準化残差とてこ比のプロット
+
+x軸にてこ比, y軸に標準化残差を描画する
+
+```{r}
+autoplot(ols2,
+         which = 5,
+         ncol = 1)
+```
+
+### てこ比とCookの距離のプロット
+
+x軸にてこ比, y軸にCookの距離を設定し, 散布図を描く
+
+```{r}
+autoplot(ols2, 
+         which = 6, 
+         ncol = 1)
+```
+
+### 多重共線性のチェック
+
+多重共線性のチェックのため, VIFを計算する
+VIFの計算には, carパッケージのvif()関数を利用する
+VIFが10以下であれば問題ない
+    2以下が理想だとする意見もある
+
+```{r}
+install.packages("car")
+library(car)
+car::vif(ols2)
+```
+
+### 予測(新しい説明変数のデータセットを作成)
+
+データを予測するため, まずは新しい説明変数のデータセットを作成する
+データの列名は分析に利用したものと同じ名前, 同じ列数である必要性がある
+簡単のため, 単回帰で行うが重回帰でも問題なく予測できる
+
+```{r}
+new_dat <- data.frame(
+  disp = seq(from = 50,
+             to = 500,
+             length.out = 20)
+)
+```
+
+### 予測
+
+データを予測するためには, ciToolsパッケージのadd_pi()関数を利用するのがおすすめ
+dfに新しい説明変数のデータフレーム, fitに分析の結果のオブジェクト, alphaに$100(1 -  \alpha)\%$区間の$\alpha$の値を指定する
+
+add_ci()関数は回帰直線の信頼区間を示すのに後ほど利用する
+
+```{r}
+library(ciTools)
+pred <- add_pi(df = new_dat,
+               fit = ols1,
+               alpha = 0.05)
+ci <- add_ci(df = new_dat,
+             fit = ols1,
+             alpha = 0.05)
+```
+
+### 予測区間の図示
+
+データの散布図に予測区間を図示する
+
+```{r}
+ggplot() +
+  geom_point(
+    data = mtcars,
+    aes(x = disp,
+        y = mpg)) +
+  geom_smooth(
+    data = mtcars,
+    aes(x = disp,
+        y = mpg),
+    method = "lm",
+    se = FALSE) +
+  geom_ribbon(
+    data = pred,
+    aes(x = disp,
+        ymin = LPB0.025,
+        ymax = UPB0.975),
+    fill = "lightblue",
+    alpha = 0.5
+  )
+```
+
+### geom_smooth()と区間
+
+geom_smooth()関数を利用するとデフォルトでは回帰直線とともに, 区間が表示されている
+    これは回帰直線の信頼区間
+
+```{r}
+ggplot(data = mtcars) +
+  aes(x = disp,
+      y = mpg) +
+  geom_point() +
+  geom_smooth(
+    method = "lm"
+  )
+```
+
+### 回帰直線の信頼区間
+
+add_ci()関数で推定した値とgeom_smooth(se = TRUE)は一致する
+
+```{r}
+ggplot() +
+  geom_point(
+    data = mtcars,
+    aes(x = disp,
+        y = mpg)) +
+  geom_smooth(
+    data = mtcars,
+    aes(x = disp,
+        y = mpg),
+    method = "lm",
+    se = TRUE) +
+  geom_ribbon(
+    data = ci,
+    aes(x = disp,
+        ymin = LCB0.025,
+        ymax = UCB0.975),
+    fill = "lightblue",
+    alpha = 0.5
+  )
+```
+
